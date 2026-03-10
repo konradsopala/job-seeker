@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Seeker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Job Seeker</h1>
+    <p class="subtitle">Upload a CSV of companies and search their career pages</p>
+
+    <div class="controls">
+      <div class="upload-section">
+        <label for="csv-file">CSV File <span class="hint">(columns: company name, careers URL)</span></label>
+        <input type="file" id="csv-file" accept=".csv">
+        <div id="file-info" class="file-info" hidden></div>
+      </div>
+
+      <div class="search-section">
+        <label for="search-term">Job Title</label>
+        <input type="text" id="search-term" placeholder="e.g. Product Marketing Manager">
+      </div>
+
+      <button id="search-btn" disabled>Search</button>
+    </div>
+
+    <div id="progress" class="progress" hidden>
+      <div class="progress-bar">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+      <span id="progress-text" class="progress-text"></span>
+    </div>
+
+    <div id="results" class="results" hidden>
+      <h2>Results <span id="result-count"></span></h2>
+      <table id="results-table">
+        <thead>
+          <tr>
+            <th>Position</th>
+            <th>Company</th>
+            <th>Link</th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+      <div id="no-results" class="no-results" hidden>No matching positions found.</div>
+    </div>
+
+    <div id="errors" class="errors" hidden>
+      <h3>Failed to scrape</h3>
+      <ul id="error-list"></ul>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
