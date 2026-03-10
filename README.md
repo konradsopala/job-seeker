@@ -4,6 +4,8 @@ Search career pages across multiple companies for specific job listings in secon
 
 Upload a CSV file with company names and their career page URLs, enter a job title, and the app scrapes each page to find matching positions — returning the position name, company, and a direct link to apply.
 
+![Demo](demo.gif)
+
 ## How it works
 
 1. **Upload a CSV** with two columns: company name and careers page URL
