@@ -8,49 +8,89 @@
 </head>
 <body>
   <div class="container">
-    <h1>Job Seeker</h1>
-    <p class="subtitle">Upload a CSV of companies and search their career pages</p>
+    <header>
+      <div class="logo">JS</div>
+      <div>
+        <h1>Job Seeker</h1>
+        <p class="subtitle">Search career pages across companies in seconds</p>
+      </div>
+    </header>
 
-    <div class="controls">
-      <div class="upload-section">
-        <label for="csv-file">CSV File <span class="hint">(columns: company name, careers URL)</span></label>
-        <input type="file" id="csv-file" accept=".csv">
-        <div id="file-info" class="file-info" hidden></div>
+    <div class="card controls">
+      <div class="field">
+        <label for="csv-file">Companies CSV</label>
+        <div class="file-drop" id="file-drop">
+          <input type="file" id="csv-file" accept=".csv">
+          <div class="file-drop-content">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <span>Drop a CSV file or <em>browse</em></span>
+            <span class="hint">Columns: company name, careers page URL</span>
+          </div>
+        </div>
+        <div id="file-info" class="file-info" hidden>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <span id="file-info-text"></span>
+        </div>
       </div>
 
-      <div class="search-section">
+      <div class="field">
         <label for="search-term">Job Title</label>
-        <input type="text" id="search-term" placeholder="e.g. Product Marketing Manager">
+        <div class="input-wrapper">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" id="search-term" placeholder="e.g. Product Marketing Manager">
+        </div>
       </div>
 
-      <button id="search-btn" disabled>Search</button>
+      <button id="search-btn" disabled>
+        <span class="btn-text">Search Career Pages</span>
+        <span class="btn-loading" hidden>
+          <span class="spinner"></span>
+          Searching...
+        </span>
+      </button>
     </div>
 
     <div id="progress" class="progress" hidden>
+      <div class="progress-header">
+        <span id="progress-text" class="progress-text"></span>
+        <span id="progress-pct" class="progress-pct"></span>
+      </div>
       <div class="progress-bar">
         <div id="progress-fill" class="progress-fill"></div>
       </div>
-      <span id="progress-text" class="progress-text"></span>
     </div>
 
     <div id="results" class="results" hidden>
-      <h2>Results <span id="result-count"></span></h2>
-      <table id="results-table">
-        <thead>
-          <tr>
-            <th>Position</th>
-            <th>Company</th>
-            <th>Link</th>
-          </tr>
-        </thead>
-        <tbody id="results-body"></tbody>
-      </table>
-      <div id="no-results" class="no-results" hidden>No matching positions found.</div>
+      <div class="results-header">
+        <h2>Results</h2>
+        <span id="result-count" class="badge"></span>
+      </div>
+      <div id="results-list" class="results-list"></div>
+      <div id="no-results" class="no-results" hidden>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          <line x1="8" y1="11" x2="14" y2="11"/>
+        </svg>
+        <p>No matching positions found</p>
+      </div>
     </div>
 
     <div id="errors" class="errors" hidden>
-      <h3>Failed to scrape</h3>
-      <ul id="error-list"></ul>
+      <details>
+        <summary>Some pages could not be scraped</summary>
+        <ul id="error-list"></ul>
+      </details>
     </div>
   </div>
 

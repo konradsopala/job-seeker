@@ -2,21 +2,38 @@ const csvFileInput = document.getElementById("csv-file");
 const searchTermInput = document.getElementById("search-term");
 const searchBtn = document.getElementById("search-btn");
 const fileInfo = document.getElementById("file-info");
+const fileInfoText = document.getElementById("file-info-text");
+const fileDrop = document.getElementById("file-drop");
 const progressEl = document.getElementById("progress");
 const progressFill = document.getElementById("progress-fill");
 const progressText = document.getElementById("progress-text");
+const progressPct = document.getElementById("progress-pct");
 const resultsEl = document.getElementById("results");
-const resultsBody = document.getElementById("results-body");
+const resultsList = document.getElementById("results-list");
 const resultCount = document.getElementById("result-count");
 const noResults = document.getElementById("no-results");
 const errorsEl = document.getElementById("errors");
 const errorList = document.getElementById("error-list");
+const btnText = document.querySelector(".btn-text");
+const btnLoading = document.querySelector(".btn-loading");
 
 let companies = [];
 
 csvFileInput.addEventListener("change", handleFileUpload);
 searchTermInput.addEventListener("input", updateSearchButton);
 searchBtn.addEventListener("click", startSearch);
+
+// Drag and drop visual feedback
+fileDrop.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  fileDrop.classList.add("dragover");
+});
+fileDrop.addEventListener("dragleave", () => {
+  fileDrop.classList.remove("dragover");
+});
+fileDrop.addEventListener("drop", () => {
+  fileDrop.classList.remove("dragover");
+});
 
 function handleFileUpload(e) {
   const file = e.target.files[0];
@@ -25,7 +42,7 @@ function handleFileUpload(e) {
   const reader = new FileReader();
   reader.onload = (event) => {
     companies = parseCSV(event.target.result);
-    fileInfo.textContent = `Loaded ${companies.length} companies`;
+    fileInfoText.textContent = `${companies.length} companies loaded from ${file.name}`;
     fileInfo.hidden = false;
     updateSearchButton();
   };
@@ -40,19 +57,16 @@ function parseCSV(text) {
     const line = lines[i].trim();
     if (!line) continue;
 
-    // Parse CSV respecting quoted fields
     const fields = parseCSVLine(line);
     if (fields.length < 2) continue;
 
     const name = fields[0].trim();
     const url = fields[1].trim();
 
-    // Skip header row
     if (i === 0 && (url.toLowerCase() === "url" || url.toLowerCase() === "careers_url" || url.toLowerCase() === "link")) {
       continue;
     }
 
-    // Validate URL
     if (!url.startsWith("http://") && !url.startsWith("https://")) continue;
 
     result.push({ name, url });
@@ -103,19 +117,21 @@ async function startSearch() {
 
   // Reset UI
   searchBtn.disabled = true;
-  resultsBody.innerHTML = "";
+  btnText.hidden = true;
+  btnLoading.hidden = false;
+  resultsList.innerHTML = "";
   errorList.innerHTML = "";
   resultsEl.hidden = false;
   noResults.hidden = true;
   errorsEl.hidden = true;
   progressEl.hidden = false;
   progressFill.style.width = "0%";
+  progressPct.textContent = "0%";
 
   let completed = 0;
   let totalMatches = 0;
   const errors = [];
 
-  // Process companies with concurrency limit
   const CONCURRENCY = 3;
   const queue = [...companies];
   const workers = [];
@@ -143,7 +159,7 @@ async function startSearch() {
         if (data.matches && data.matches.length > 0) {
           for (const match of data.matches) {
             totalMatches++;
-            addResultRow(match.title, company.name, match.url);
+            addResultCard(match.title, company.name, match.url);
           }
         }
       } catch (err) {
@@ -153,15 +169,18 @@ async function startSearch() {
       completed++;
       const pct = Math.round((completed / companies.length) * 100);
       progressFill.style.width = pct + "%";
-      progressText.textContent = `${completed} / ${companies.length} companies checked`;
+      progressPct.textContent = pct + "%";
+      progressText.textContent = `Checking ${completed} of ${companies.length} companies...`;
     }
   }
 
   await Promise.all(workers);
 
   // Final UI updates
-  resultCount.textContent = `(${totalMatches})`;
+  resultCount.textContent = totalMatches;
   noResults.hidden = totalMatches > 0;
+  btnText.hidden = false;
+  btnLoading.hidden = true;
   searchBtn.disabled = false;
 
   if (errors.length > 0) {
@@ -173,28 +192,36 @@ async function startSearch() {
     }
   }
 
-  progressText.textContent = `Done. ${totalMatches} matching positions found across ${companies.length} companies.`;
+  progressText.textContent = `Done — ${totalMatches} matching positions found across ${companies.length} companies`;
+  progressPct.textContent = "";
 }
 
-function addResultRow(title, company, url) {
-  const tr = document.createElement("tr");
+function addResultCard(title, company, url) {
+  const card = document.createElement("div");
+  card.className = "result-card";
 
-  const tdTitle = document.createElement("td");
-  tdTitle.textContent = title;
+  const info = document.createElement("div");
+  info.className = "result-info";
 
-  const tdCompany = document.createElement("td");
-  tdCompany.textContent = company;
+  const titleEl = document.createElement("div");
+  titleEl.className = "result-title";
+  titleEl.textContent = title;
 
-  const tdLink = document.createElement("td");
-  const a = document.createElement("a");
-  a.href = url;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  a.textContent = "Apply";
-  tdLink.appendChild(a);
+  const companyEl = document.createElement("div");
+  companyEl.className = "result-company";
+  companyEl.textContent = company;
 
-  tr.appendChild(tdTitle);
-  tr.appendChild(tdCompany);
-  tr.appendChild(tdLink);
-  resultsBody.appendChild(tr);
+  info.appendChild(titleEl);
+  info.appendChild(companyEl);
+
+  const link = document.createElement("a");
+  link.className = "result-link";
+  link.href = url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.textContent = "View & Apply";
+
+  card.appendChild(info);
+  card.appendChild(link);
+  resultsList.appendChild(card);
 }
