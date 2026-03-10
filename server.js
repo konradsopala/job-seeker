@@ -81,6 +81,10 @@ function extractMatchingJobs(html, baseUrl, searchTerm) {
     matches.push({ title: text, url: absoluteUrl });
   });
 
+  // Extract jobs from embedded JSON data (Ashby, Greenhouse, Lever, etc.)
+  // Many career pages are JS-rendered and embed job data in script tags
+  extractJobsFromJSON(html, baseUrl, keywords, seen, matches);
+
   // Also check list items, table rows, and other containers that might
   // contain job titles with a nearby link
   const containers = "li, tr, article, [class*='job'], [class*='position'], [class*='opening'], [class*='career'], [data-job], [data-position]";
@@ -116,6 +120,117 @@ function extractMatchingJobs(html, baseUrl, searchTerm) {
   });
 
   return matches;
+}
+
+function extractJobsFromJSON(html, baseUrl, keywords, seen, matches) {
+  // Many career pages (Ashby, Greenhouse, Lever) embed job data as JSON
+  // in script tags. Extract top-level JSON objects from the raw HTML.
+  extractJSONBlobs(html, (obj) => {
+    findJobsInObject(obj, baseUrl, keywords, seen, matches);
+  });
+}
+
+function extractJSONBlobs(html, callback) {
+  // Find positions where a top-level JSON object starts after an assignment
+  // Patterns: window.__appData = {...}, var jobs = [...], etc.
+  const startPatterns = /=\s*(\{|\[)/g;
+  let pm;
+
+  while ((pm = startPatterns.exec(html)) !== null) {
+    const openChar = pm[1];
+    const closeChar = openChar === "{" ? "}" : "]";
+    const startPos = pm.index + pm[0].length - 1; // position of { or [
+
+    // Use a brace-counting approach to find the matching close
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+
+    for (let i = startPos; i < html.length && i < startPos + 500000; i++) {
+      const ch = html[i];
+
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (ch === "\\") {
+        if (inString) escape = true;
+        continue;
+      }
+      if (ch === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (inString) continue;
+
+      if (ch === "{" || ch === "[") depth++;
+      else if (ch === "}" || ch === "]") {
+        depth--;
+        if (depth === 0) {
+          const jsonStr = html.slice(startPos, i + 1);
+          if (jsonStr.includes('"title"') && jsonStr.length > 50) {
+            try {
+              const data = JSON.parse(jsonStr);
+              callback(data);
+            } catch {
+              // skip
+            }
+          }
+          break;
+        }
+      }
+    }
+  }
+}
+
+function findJobsInObject(obj, baseUrl, keywords, seen, matches) {
+  if (!obj || typeof obj !== "object") return;
+
+  // Check if this object looks like a job posting
+  if (obj.title && typeof obj.title === "string") {
+    const titleLower = obj.title.toLowerCase();
+    if (isMatch(titleLower, keywords)) {
+      // Try to find a URL for this job
+      const jobUrl =
+        obj.jobUrl ||
+        obj.url ||
+        obj.applyUrl ||
+        obj.hostedUrl ||
+        obj.absolute_url ||
+        obj.link ||
+        null;
+
+      // For Ashby/Lever pages, construct URL from id
+      const id = obj.id || obj.jobId;
+      const baseWithSlash = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
+      const resolvedUrl = jobUrl
+        ? resolveUrl(jobUrl, baseWithSlash)
+        : id
+          ? resolveUrl(id, baseWithSlash)
+          : baseUrl;
+
+      if (resolvedUrl) {
+        const key = `${obj.title}|${resolvedUrl}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          matches.push({ title: obj.title, url: resolvedUrl });
+        }
+      }
+    }
+  }
+
+  // Recurse into arrays and objects
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      findJobsInObject(item, baseUrl, keywords, seen, matches);
+    }
+  } else {
+    for (const value of Object.values(obj)) {
+      if (typeof value === "object" && value !== null) {
+        findJobsInObject(value, baseUrl, keywords, seen, matches);
+      }
+    }
+  }
 }
 
 function isMatch(text, keywords) {
